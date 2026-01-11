@@ -224,23 +224,33 @@ class StudentController extends Controller
     }
 
     // Add this method to calculate progress:
-    private function calculateCourseProgress($student) 
-    { 
-       // Example calculation - adjust based on your requirements
-        $totalItems = 0;
-        $completedItems = 0;
-    
-        // Count quizzes
-        $totalQuizzes = Quiz::count();
-        $completedQuizzes = $student->quizAttempts()->where('passed', true)->distinct('quiz_id')->count();
-    
-        // Count games
-        $totalGames = Game::count();
-        $playedGames = $student->gameAttempts()->distinct('game_id')->count();
-    
+    private function calculateCourseProgress($student)
+    {
+        // Active content only
+        $totalQuizzes = Quiz::where('is_published', true)->count();
+        $totalGames   = Game::where('is_published', true)->count();
+
+        $passedQuizzes = $student->quizAttempts()
+            ->join('quizzes', 'quiz_attempts.quiz_id', '=', 'quizzes.id')
+            ->where('quizzes.is_published', true)
+            ->where('quiz_attempts.is_completed', true)
+            ->whereRaw(
+                '(quiz_attempts.score / quiz_attempts.total_points) * 100 >= quizzes.passing_score'
+            )
+            ->distinct('quiz_attempts.quiz_id')
+            ->count('quiz_attempts.quiz_id');
+
+        $playedGames = $student->gameAttempts()
+            ->join('games', 'game_attempts.game_id', '=', 'games.id')
+            ->where('games.is_published', true)
+            ->distinct('game_attempts.game_id')
+            ->count('game_attempts.game_id');
+
         $totalItems = $totalQuizzes + $totalGames;
-        $completedItems = $completedQuizzes + $playedGames;
-    
-        return $totalItems > 0 ? round(($completedItems / $totalItems) * 100) : 0;
+        $completedItems = $passedQuizzes + $playedGames;
+
+        return $totalItems > 0
+            ? min(100, round(($completedItems / $totalItems) * 100))
+            : 0;
     }
 }
