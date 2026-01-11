@@ -105,33 +105,6 @@ class TeacherController extends Controller
                 ? round(($completedQuizzes + $gamesPlayed) / ($totalQuizzes + $totalGames) * 100) 
                 : 0;
 
-            // Check for declining quiz performance
-            $decliningPerformance = false;
-            if ($quizAttempts->count() >= 3) {
-                $recentAttempts = $quizAttempts->sortByDesc('created_at')->take(3);
-                $earlierAttempts = $quizAttempts->sortBy('created_at')->take(3);
-
-                $recentAvg = $earlierAvg = 0;
-
-                foreach ($recentAttempts as $attempt) {
-                    if ($attempt->total_points > 0) {
-                        $recentAvg += ($attempt->score / $attempt->total_points) * 100;
-                    }
-                }
-                $recentAvg = $recentAvg / 3;
-
-                foreach ($earlierAttempts as $attempt) {
-                    if ($attempt->total_points > 0) {
-                        $earlierAvg += ($attempt->score / $attempt->total_points) * 100;
-                    }
-                }
-                $earlierAvg = $earlierAvg / 3;
-
-                if ($recentAvg < $earlierAvg - 10) {
-                    $decliningPerformance = true;
-                }
-            }
-
             // Determine if student needs support
             $needsSupport = false;
             $supportReasons = [];
@@ -158,12 +131,6 @@ class TeacherController extends Controller
             if ($totalQuizzes > 0 && $completedQuizzes == 0) {
                 $needsSupport = true;
                 $supportReasons[] = "No quiz attempts yet";
-            }
-
-            // Declining performance
-            if ($decliningPerformance) {
-                $needsSupport = true;
-                $supportReasons[] = "Performance declining over time";
             }
 
             $performanceData[] = [
