@@ -224,23 +224,12 @@ class StudentController extends Controller
     }
 
     // Add this method to calculate progress:
-    private function calculateCourseProgress($student)
-    {
-        // Example calculation - adjust based on your requirements
-        $totalItems = 0;
-        $completedItems = 0;
-    
-        // Count quizzes
-        $totalQuizzes = Quiz::count();
-        $completedQuizzes = $student->quizAttempts()->distinct('quiz_id')->count();
-    
-        // Count games
-        $totalGames = Game::count();
-        $playedGames = $student->gameAttempts()->distinct('game_id')->count();
-    
-        $totalItems = $totalQuizzes + $totalGames;
-        $completedItems = $completedQuizzes + $playedGames;
-    
-        return $totalItems > 0 ? round(($completedItems / $totalItems) * 100) : 0;
-    }
+    private function calculateCourseProgress($student) 
+    { 
+        $totalQuizzes = Quiz::count(); 
+        $completedQuizzes = $student->quizAttempts() ->where('is_completed', true) ->pluck('quiz_id') ->unique() ->count(); 
+        $totalGames = Game::count(); $playedGames = $student->gameAttempts() ->pluck('game_id') ->unique() ->count(); 
+        $totalItems = $totalQuizzes + $totalGames; 
+        $completedItems = $completedQuizzes + $playedGames; 
+        return $totalItems > 0 ? round(($completedItems / $totalItems) * 100) : 0; }
 }
