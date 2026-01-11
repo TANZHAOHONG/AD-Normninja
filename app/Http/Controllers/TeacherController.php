@@ -58,12 +58,17 @@ class TeacherController extends Controller
                 ->where('is_completed', true)
                 ->get();
 
-            // Keep only the best attempt per quiz
+            // Keep only the best passed attempt per quiz
             $bestQuizAttempts = $quizAttempts->groupBy('quiz_id')->map(fn($attempts) =>
                 $attempts->sortByDesc(fn($a) => $a->score)->first()
             )->values();
 
-            $completedQuizzes = $bestQuizAttempts->count();
+            $passedQuizIds = $bestQuizAttempts->filter(function ($attempt) {
+                return $attempt->total_points > 0 &&
+                (($attempt->score / $attempt->total_points) * 100) >= $attempt->quiz->passing_score;
+            })->pluck('quiz_id')->unique();
+
+            $completedQuizzes = $passedQuizIds->count();
             $totalQuizzes = $teacher->quizzes()->count();
 
             // Average quiz score
